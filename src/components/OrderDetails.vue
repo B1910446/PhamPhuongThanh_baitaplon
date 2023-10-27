@@ -1,87 +1,198 @@
 <template>
-  <div class="item">
-    <i>
-      <slot name="icon"></slot>
-    </i>
-    <div class="details">
-      <h3>
-        <slot name="heading"></slot>
-      </h3>
-      <slot></slot>
-    </div>
+  <div class="order-details">
+      <div class="order-details-inner">
+          <h2 class="d-flex justify-content-between">Order summary
+              <slot></slot>
+          </h2>
+          <div class="d-flex flex-wrap h-50 flex-row" style="overflow-y: auto;">
+              <div style="flex: 50%;" v-for="(f, index) in filterFlowers" :key="f.flower_id">
+                  <div class="product-detail d-flex">
+                      <div class="image">
+                          <img :src="require(`../assets/images/${f.flower_src}`)" alt="" />
+                      </div>
+                      <div class="content">
+                          <p class="name">{{ f.flower_name }} <span>X {{ item_qty[index] }}</span></p>
+                          <p class="desc">{{ f.flower_desc }}</p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <div class="price">
+              <p>Discount: ${{ billMatch.bill_discount }}</p>
+              <p>Delivery Fee: ${{ billMatch.bill_delivery }}</p>
+              <p>Total: ${{ billMatch.bill_total }}</p>
+          </div>
+      </div>
   </div>
 </template>
 
+<script>
+import axios from "axios";
+import { mapState } from "vuex";
+export default {
+  props: ['bill'],
+  name: "OrderDetails",
+
+  data() {
+      return {
+          allFlowersInBill: [],
+          item_qty: [],
+
+          billMatch: undefined,
+      }
+  },
+
+  created() {
+      this.getAllFlowers();
+      this.getBillStatus()
+  },
+
+  computed: {
+      ...mapState(["allFlowers"]),
+
+      filterFlowers: function () {
+          return this.allFlowers.filter(
+              (f) => this.matchID(f, this.allFlowersInBill)
+          );
+      },
+  },
+
+  methods: {
+      matchID: function (flower, cartArray) {
+          let temp = "";
+          cartArray.forEach(element => {
+              if (parseInt(flower.flower_id) == element) {
+                  temp = flower
+              }
+          });
+          return temp
+      },
+
+      async getAllFlowers() {
+          if (this.bill) {
+              let data = (await axios.get('/billdetails/' + this.bill)).data;
+              data.forEach(element => {
+                  this.allFlowersInBill.push(element.flower_id);
+                  this.item_qty.push(element.item_qty)
+              });
+          }
+      },
+
+      async getBillStatus() {
+          if (this.bill) {
+              this.billMatch = (await axios.get('/billstatus/bill/' + this.bill)).data[0];
+          }
+      },
+  }
+}
+</script>
+
 <style scoped>
-.item {
-  margin-top: 2rem;
+.order-details {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99;
+  background-color: rgba(0, 0, 0, 0.2);
+
   display: flex;
-  position: relative;
+  align-items: center;
+  justify-content: center;
 }
 
-.details {
-  flex: 1;
-  margin-left: 1rem;
+.order-details .order-details-inner {
+  width: 60vw;
+  height: 70vh;
+  background-color: #fff;
+  padding: 32px;
 }
 
-i {
-  display: flex;
-  place-items: center;
-  place-content: center;
-  width: 32px;
-  height: 32px;
 
-  color: var(--color-text);
+.order-details .order-details-inner h2 {
+  margin: 0;
+  font-size: 32px;
+  color: #ae2771;
+  margin-bottom: 20px;
 }
 
-h3 {
-  font-size: 1.2rem;
-  font-weight: 500;
-  margin-bottom: 0.4rem;
-  color: var(--color-heading);
+
+.order-details .order-details-inner .product-detail .image img {
+  height: 8rem;
+  width: 8rem;
+  margin: 20px;
 }
 
-@media (min-width: 1024px) {
-  .item {
-    margin-top: 0;
-    padding: 0.4rem 0 1rem calc(var(--section-gap) / 2);
+.order-details .order-details-inner .product-detail .content {
+  margin-top: 20px;
+  font-size: 12px;
+  width: 100%;
+}
+
+.order-details .order-details-inner .product-detail .content p:first-of-type {
+  font-size: 16px;
+  color: #f38609;
+}
+
+.order-details .order-details-inner .product-detail .content p span {
+  font-size: 14px;
+  color: black;
+}
+
+.order-details .order-details-inner .price {
+  margin-top: 30px;
+  font-size: 16px;
+}
+
+
+@media (max-width: 768px) {
+
+  .order-details .order-details-inner {
+      width: 80vw;
+      height: 60vh;
+
   }
 
-  i {
-    top: calc(50% - 25px);
-    left: -26px;
-    position: absolute;
-    border: 1px solid var(--color-border);
-    background: var(--color-background);
-    border-radius: 8px;
-    width: 50px;
-    height: 50px;
+  .order-details .order-details-inner h2 {
+      font-size: 20px;
   }
 
-  .item:before {
-    content: ' ';
-    border-left: 1px solid var(--color-border);
-    position: absolute;
-    left: 0;
-    bottom: calc(50% + 25px);
-    height: calc(50% - 25px);
+  .order-details .order-details-inner .product-detail .content .desc,
+  .order-details .order-details-inner .product-detail .content .name span {
+      font-size: 12px !important;
   }
 
-  .item:after {
-    content: ' ';
-    border-left: 1px solid var(--color-border);
-    position: absolute;
-    left: 0;
-    top: calc(50% + 25px);
-    height: calc(50% - 25px);
+  .order-details .order-details-inner .product-detail .content .name {
+      font-size: 14px !important;
   }
 
-  .item:first-of-type:before {
-    display: none;
+
+}
+
+@media (max-width: 576px) {
+  .order-details .order-details-inner {
+      width: 90vw;
+      height: 65vh;
   }
 
-  .item:last-of-type:after {
-    display: none;
+  .order-details .order-details-inner div:first-of-type {
+      flex-direction: column;
   }
+}
+
+@media (max-width: 376px) {
+  .order-details .order-details-inner {
+      width: 90vw;
+      height: 65vh;
+      padding: 5px !important;
+  }
+
+  .order-details .order-details-inner .product-detail .content .name {
+      font-size: 12px !important;
+  }
+
+
 }
 </style>
